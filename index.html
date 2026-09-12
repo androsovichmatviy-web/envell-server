@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Энвелл — онлайн</title>
+<style>
+:root{--ink:#e8f0ff;--dim:#8aa0cc;--gold:#ffc83d;--panel:#101a30;--line:#22345a}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#05080f;color:var(--ink);min-height:100vh;display:flex;justify-content:center;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+#app{width:100%;max-width:520px;padding:10px 10px 30px;position:relative}
+.screen{display:none}.screen.on{display:block}
+
+#boot{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;color:#7dffb0;
+  background:#02050a;border:1px solid #13301f;border-radius:10px;padding:16px 14px;min-height:400px}
+#bootLines span{display:block}
+#bar{height:9px;background:#0c2216;border:1px solid #1d4b31;border-radius:5px;overflow:hidden;margin-top:14px;display:none}
+#bar i{display:block;height:100%;width:0;background:#3ddb85;transition:width .18s linear}
+
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:16px}
+h1{font-size:30px;font-weight:800;color:var(--gold);letter-spacing:1px;text-align:center;line-height:1}
+h1 em{display:block;font-style:normal;font-size:22px;color:#ffe487}
+.sub{text-align:center;font-size:11px;color:var(--dim);letter-spacing:2px;margin:6px 0 18px}
+h2{font-size:17px;font-weight:600;margin-bottom:4px}
+.lead{font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:13px}
+label{font-size:12.5px;color:var(--dim);display:block;margin-bottom:5px}
+input,select{width:100%;padding:10px;background:#0d1729;border:1.5px solid var(--line);border-radius:9px;
+  color:var(--ink);font:inherit;font-size:14px;margin-bottom:11px}
+.btn{width:100%;padding:13px;border-radius:10px;border:none;background:var(--gold);color:#2a1a00;
+  font:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}
+.btn.sec{background:transparent;border:1.5px solid #2c4271;color:var(--ink);font-weight:500}
+.btn:disabled{opacity:.4}
+.two{display:flex;gap:10px}.two>*{flex:1}
+
+.slot{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:7px;
+  border:1.5px solid var(--line);border-radius:10px;background:#0d1729;cursor:pointer}
+.slot.mine{border-color:currentColor;background:#132342}
+.slot.busy{opacity:.55;cursor:not-allowed}
+.av{width:24px;height:24px;border-radius:50%;flex:none}
+.nm{font-weight:600;font-size:14px}.rl{font-size:12px;color:var(--dim)}
+.by{margin-left:auto;font-size:11.5px;color:var(--dim)}
+#link{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#6ef0a8;word-break:break-all;
+  background:#0a1424;border:1px dashed #24523c;border-radius:8px;padding:9px;margin-bottom:12px}
+
+#hud{display:flex;gap:10px;align-items:center;font-size:13px;margin-bottom:7px}
+#hud .lv{font-weight:700;font-size:15px}#hud .en{color:var(--dim)}#hud .pg{margin-left:auto;
+  font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6ef0a8}
+canvas{width:100%;height:auto;display:block;border-radius:12px;background:#0a1122;
+  border:1.5px solid var(--line);touch-action:none}
+#roster{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:7px}
+.rc{background:#0d1729;border:1.5px solid var(--line);border-radius:8px;padding:5px 3px;text-align:center}
+.rc .n{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden}
+.rc .w{font-size:8.5px;color:var(--dim);white-space:nowrap;overflow:hidden}
+.rc .b{height:5px;border-radius:3px;background:#22345a;margin-top:3px;overflow:hidden}
+.rc .b i{display:block;height:100%}
+.rc.down{opacity:.4}
+#bottom{display:flex;gap:9px;margin-top:9px}
+#abil{flex:1;position:relative;overflow:hidden;background:#132342;border:1.5px solid #35508c;
+  border-radius:12px;color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:14px;cursor:pointer}
+#abil i{position:absolute;left:0;bottom:0;width:100%;background:rgba(255,200,61,.22)}
+#abil span{position:relative}
+#exit{flex:none;width:60px;background:transparent;border:1.5px solid #2c4271;border-radius:12px;color:var(--ink);cursor:pointer}
+#chatBox{margin-top:8px;height:58px;overflow:hidden;font-size:12px;line-height:1.55;color:var(--dim)}
+#chatBox b{color:#fff}
+#chatIn{margin-top:6px}
+.tip{margin-top:8px;font-size:11.5px;color:#5d719c;line-height:1.5}
+</style>
+</head>
+<body><div id="app">
+
+<section class="screen on" id="boot"><div id="bootLines"></div><div id="bar"><i></i></div></section>
+
+<section class="screen" id="join">
+  <h1>ГЕРОИ<em>ЭНВЕЛЛА</em></h1>
+  <div class="sub">ОНЛАЙН · ДО 5 ИГРОКОВ</div>
+  <div class="panel">
+    <label>Твоё имя</label>
+    <input id="nick" maxlength="14" placeholder="Игрок">
+    <label>Код комнаты (одинаковый у всех)</label>
+    <input id="room" maxlength="12" value="ENVELL">
+    <button class="btn" id="bJoin">Войти в комнату</button>
+    <p class="tip">Друзья открывают эту же ссылку и вводят тот же код комнаты.</p>
+  </div>
+</section>
+
+<section class="screen" id="lobby">
+  <div class="panel">
+    <h2>Комната <span id="rc"></span></h2>
+    <p class="lead">Выбери героя. Свободных заберут боты. Играть можно хоть вдвоём, хоть впятером.</p>
+    <div id="link"></div>
+    <div id="slots"></div>
+    <div class="two">
+      <div><label>Уровень</label><input type="number" id="lv" min="1" max="100" value="1"></div>
+      <div><label>Сложность</label><select id="df">
+        <option value="0.75">Лёгкая</option><option value="1" selected>Обычная</option><option value="1.4">Хардкор</option>
+      </select></div>
+    </div>
+    <button class="btn" id="bGo" disabled>Сначала выбери героя</button>
+    <button class="btn sec" id="bOut">Выйти</button>
+    <div id="chatBox"></div>
+  </div>
+</section>
+
+<section class="screen" id="game">
+  <div id="hud"><span class="lv" id="hLv">Уровень 1</span><span class="en" id="hEn"></span><span class="pg" id="hPg">— мс</span></div>
+  <canvas id="cv"></canvas>
+  <div id="roster"></div>
+  <div id="bottom">
+    <button id="abil"><i></i><span id="abT">Способность</span></button>
+    <button id="exit">⏏</button>
+  </div>
+  <div id="chatBox2"></div>
+  <input id="chatIn" maxlength="80" placeholder="написать команде…">
+  <p class="tip">Тяни пальцем по полю или WASD. Атака автоматическая. Пробел — способность.</p>
+</section>
+
+</div>
+<script>
+"use strict";
+var $=function(i){return document.getElementById(i)};
+function show(s){['boot','join','lobby','game'].forEach(function(x){$(x).classList.toggle('on',x===s)})}
+
+/* ---------- загрузка ---------- */
+var BOOT=["ENVELL BIOS  v2.17","Проверка памяти ....... 4096 MB  OK","Накопитель ............ ENVELL-DISK  OK",
+"Видеоядро ............. OK","","Загрузка ядра системы...","Поиск сетевого адаптера... найден","",
+"> запуск: ГЕРОИ ЭНВЕЛЛА"];
+var bi=0;
+(function bootStep(){
+  if(bi<BOOT.length){
+    var s=document.createElement('span'); s.textContent=BOOT[bi]||"\u00a0";
+    $('bootLines').appendChild(s); bi++;
+    setTimeout(bootStep, BOOT[bi-1]===""?90:210);
+  } else {
+    $('bar').style.display='block';
+    var p=0,el=$('bar').firstElementChild;
+    var t=setInterval(function(){ p+=6+Math.random()*10;
+      if(p>=100){p=100;clearInterval(t);setTimeout(function(){show('join')},380);}
+      el.style.width=p+'%'; },65);
+  }
+})();
+
+/* ---------- сеть ---------- */
+var ws=null, ME=0, CL={}, ORD=[], W=600, H=400, myCls=null;
+var cur=null, prev=null, curT=0, prevT=0, lastPing=0, ping=0;
+
+$('bJoin').onclick=function(){
+  var n=($('nick').value||'Игрок').trim().slice(0,14);
+  var r=($('room').value||'ENVELL').trim().toUpperCase().slice(0,12);
+  var proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(proto+'://'+location.host+'/?room='+encodeURIComponent(r)+'&name='+encodeURIComponent(n));
+  ws.onopen=function(){ $('link').textContent='Ссылка для друзей: '+location.origin+'   ·   код: '+r; };
+  ws.onmessage=onMsg;
+  ws.onclose=function(){ addChat('Сервер','Соединение закрыто.'); show('join'); };
+  ws.onerror=function(){ addChat('Сервер','Не удалось подключиться.'); };
+};
+function send(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+
+function onMsg(ev){
+  var m=JSON.parse(ev.data);
+  if(m.t==='hello'){ ME=m.id; CL=m.classes; ORD=m.order; W=m.W; H=m.H; fit(); show('lobby'); }
+  else if(m.t==='full'){ alert('Комната занята: уже 5 игроков. Придумайте другой код.'); }
+  else if(m.t==='lobby'){ drawLobby(m); }
+  else if(m.t==='chat'){ addChat(m.who,m.text); }
+  else if(m.t==='s'){
+    prev=cur; prevT=curT; cur=m; curT=performance.now();
+    ping=Math.round(curT-lastPing); lastPing=curT;
+    if(m.ph==='play'||m.ph==='clear'||m.ph==='dead'){ if(!$('game').classList.contains('on')) show('game'); }
+    hud(m);
+  }
+}
+function drawLobby(m){
+  $('rc').textContent=m.code;
+  var box=$('slots'); box.innerHTML='';
+  m.slots.forEach(function(s){
+    var mine=s.taken&&s.by===($('nick').value||'Игрок').trim();
+    var d=document.createElement('div');
+    d.className='slot'+(myCls===s.key?' mine':'')+((s.taken&&myCls!==s.key)?' busy':'');
+    d.style.color=s.color;
+    d.innerHTML='<span class="av" style="background:'+s.color+'"></span>'+
+      '<span><span class="nm">'+s.name+'</span> <span class="rl">· '+s.role+' · '+s.ab+'</span></span>'+
+      '<span class="by">'+(s.taken?s.by:'свободно')+'</span>';
+    d.onclick=function(){ if(s.taken&&myCls!==s.key) return; myCls=s.key; send({t:'pick',cls:s.key});
+      $('bGo').disabled=false; $('bGo').textContent='Начать бой'; };
+    box.appendChild(d);
+  });
+  if(m.phase==='play'&&myCls) show('game');
+}
+$('bGo').onclick=function(){ send({t:'start', level:parseInt($('lv').value,10)||1, diff:parseFloat($('df').value)}); };
+$('bOut').onclick=function(){ if(ws) ws.close(); show('join'); };
+$('exit').onclick=function(){ send({t:'menu'}); show('lobby'); };
+$('chatIn').onkeydown=function(e){ if(e.key==='Enter'&&this.value.trim()){ send({t:'chat',text:this.value.trim()}); this.value=''; } };
+
+function addChat(who,text){
+  var col='#fff';
+  for(var k in CL) if(CL[k].name===who) col=CL[k].color;
+  ['chatBox','chatBox2'].forEach(function(id){
+    var c=$(id); if(!c) return;
+    var d=document.createElement('div');
+    d.innerHTML='<b style="color:'+col+'">'+esc(who)+':</b> '+esc(text);
+    c.appendChild(d); while(c.children.length>3) c.removeChild(c.firstChild);
+  });
+}
+function esc(s){ return String(s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]}); }
+
+/* ---------- ввод ---------- */
+var cv=$('cv'), ctx=cv.getContext('2d'), keys={}, joy={on:false,bx:0,by:0,dx:0,dy:0}, abPress=false;
+function fit(){ var d=Math.min(devicePixelRatio||1,3); cv.width=W*d; cv.height=H*d; ctx.setTransform(d,0,0,d,0,0); }
+fit(); addEventListener('resize',fit);
+addEventListener('keydown',function(e){ keys[e.key.toLowerCase()]=true;
+  if(e.key===' '&&document.activeElement!==$('chatIn')){ e.preventDefault(); abPress=true; } });
+addEventListener('keyup',function(e){ keys[e.key.toLowerCase()]=false; });
+function cpos(t){ var r=cv.getBoundingClientRect(); return {x:(t.clientX-r.left)/r.width*W,y:(t.clientY-r.top)/r.height*H}; }
+cv.addEventListener('touchstart',function(e){e.preventDefault();var p=cpos(e.changedTouches[0]);joy.on=true;joy.bx=p.x;joy.by=p.y;joy.dx=0;joy.dy=0;},{passive:false});
+cv.addEventListener('touchmove',function(e){e.preventDefault();if(!joy.on)return;var p=cpos(e.changedTouches[0]);
+  var dx=p.x-joy.bx,dy=p.y-joy.by,d=Math.hypot(dx,dy)||1,m=Math.min(d,46)/46;joy.dx=dx/d*m;joy.dy=dy/d*m;},{passive:false});
+function jEnd(){joy.on=false;joy.dx=0;joy.dy=0;}
+cv.addEventListener('touchend',jEnd); cv.addEventListener('touchcancel',jEnd);
+cv.addEventListener('mousedown',function(e){var p=cpos(e);joy.on=true;joy.bx=p.x;joy.by=p.y;});
+cv.addEventListener('mousemove',function(e){if(!joy.on)return;var p=cpos(e),dx=p.x-joy.bx,dy=p.y-joy.by,
+  d=Math.hypot(dx,dy)||1,m=Math.min(d,46)/46;joy.dx=dx/d*m;joy.dy=dy/d*m;});
+addEventListener('mouseup',jEnd);
+$('abil').onclick=function(){ abPress=true; };
+
+setInterval(function(){
+  var dx=0,dy=0;
+  if(keys['a']||keys['arrowleft'])dx-=1; if(keys['d']||keys['arrowright'])dx+=1;
+  if(keys['w']||keys['arrowup'])dy-=1;   if(keys['s']||keys['arrowdown'])dy+=1;
+  dx+=joy.dx; dy+=joy.dy;
+  send({t:'in',dx:dx,dy:dy,ab:abPress}); abPress=false;
+},50);
+
+/* ---------- HUD ---------- */
+function hud(m){
+  $('hLv').textContent='Уровень '+m.lv+(m.lv>=100?' — МОРГАРТ':'');
+  $('hEn').textContent = m.ph==='clear' ? ('следующий через '+m.tm+'с')
+    : m.ph==='dead' ? ('перезапуск через '+m.tm+'с')
+    : (m.en<0?'босс':'врагов: '+m.en);
+  $('hPg').textContent=ping+' мс';
+  var r=$('roster');
+  if(r.children.length!==m.h.length){
+    r.innerHTML=m.h.map(function(h){var c=CL[h.k];
+      return '<div class="rc"><div class="n" style="color:'+c.color+'">'+c.name+'</div>'+
+        '<div class="w"></div><div class="b"><i style="background:'+c.color+'"></i></div></div>';}).join('');
+  }
+  m.h.forEach(function(h,i){
+    var el=r.children[i]; if(!el) return;
+    el.classList.toggle('down',!!h.dn);
+    el.querySelector('i').style.width=Math.max(0,h.hp/h.mx*100)+'%';
+    el.querySelector('.w').textContent = h.o===ME?'ты':(h.o?'игрок':'бот');
+  });
+  var me=m.h.find(function(h){return h.o===ME;});
+  if(me){ var c=CL[me.k];
+    $('abil').firstElementChild.style.height=(me.ab>0?me.ab/c.abcd*100:0)+'%';
+    $('abT').textContent=me.ab>0?(c.ab+' · '+Math.ceil(me.ab/60)+'с'):c.ab;
+  }
+}
+
+/* ---------- отрисовка ---------- */
+var eff=[];
+function lerpMap(list,key){ var m={}; if(list) list.forEach(function(o){m[o[key]]=o;}); return m; }
+function render(){
+  requestAnimationFrame(render);
+  if(!cur) return;
+  var a = prev ? Math.min(1,(performance.now()-curT)/Math.max(16,curT-prevT)) : 1;
+  var pf = prev?lerpMap(prev.f,'i'):{}, pp = prev?lerpMap(prev.p,'i'):{};
+  var ph = {}; if(prev) prev.h.forEach(function(h){ph[h.k]=h;});
+
+  if(cur.x&&cur.x.length){ cur.x.forEach(function(e){ eff.push({x:e.x,y:e.y,r:4,m:e.m,c:e.c,life:16}); }); cur.x=[]; }
+
+  ctx.clearRect(0,0,W,H);
+  var boss = cur.lv>=100;
+  ctx.fillStyle=boss?'#170b1c':'#0c1426'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=boss?'#3a1b44':'#16233f'; ctx.lineWidth=1;
+  for(var gx=0;gx<=W;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(var gy=0;gy<=H;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+  ctx.strokeStyle=boss?'#a03cff':'#2c4271'; ctx.lineWidth=3; ctx.strokeRect(2,2,W-4,H-4);
+
+  for(var i=eff.length-1;i>=0;i--){ var e=eff[i]; e.life--; e.r+=(e.m-e.r)*0.25;
+    ctx.globalAlpha=Math.max(0,e.life/16); ctx.strokeStyle=e.c; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,7); ctx.stroke(); ctx.globalAlpha=1;
+    if(e.life<=0) eff.splice(i,1); }
+
+  cur.f.forEach(function(f){ var o=pf[f.i]; var x=o?o.x+(f.x-o.x)*a:f.x, y=o?o.y+(f.y-o.y)*a:f.y; foe(f,x,y); });
+  if(cur.b) drawBoss(cur.b);
+  cur.p.forEach(function(s){ var o=pp[s.i]; var x=o?o.x+(s.x-o.x)*a:s.x, y=o?o.y+(s.y-o.y)*a:s.y;
+    ctx.fillStyle=s.c; ctx.beginPath(); ctx.arc(x,y,s.r,0,7); ctx.fill(); });
+
+  cur.h.forEach(function(h){
+    var o=ph[h.k], x=o?o.x+(h.x-o.x)*a:h.x, y=o?o.y+(h.y-o.y)*a:h.y, c=CL[h.k];
+    if(h.dn){ ctx.globalAlpha=.35; ctx.fillStyle=c.color; ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fill();
+      ctx.globalAlpha=1; ctx.fillStyle='#8aa0cc'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(h.rt+'с',x,y-14); return; }
+    if(h.o===ME){ ctx.strokeStyle=c.color; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,17,0,7); ctx.stroke(); }
+    if(h.sh){ ctx.strokeStyle='#c08bff'; ctx.globalAlpha=.7; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(x,y,20,0,7); ctx.stroke(); ctx.globalAlpha=1; }
+    ctx.fillStyle=c.color;
+    ctx.beginPath(); ctx.moveTo(x-8,y+11); ctx.lineTo(x-4,y-1); ctx.lineTo(x+4,y-1); ctx.lineTo(x+8,y+11); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y-7,6.5,0,7); ctx.fill();
+    ctx.fillStyle='#0a1122'; ctx.font='600 8px sans-serif'; ctx.textAlign='center'; ctx.fillText(c.name[0],x,y-4.5);
+    ctx.fillStyle='#22345a'; ctx.fillRect(x-11,y-19,22,3);
+    ctx.fillStyle=c.color; ctx.fillRect(x-11,y-19,22*Math.max(0,h.hp/h.mx),3);
+    if(h.o&&h.o!==ME){ ctx.fillStyle='#8aa0cc'; ctx.font='8px sans-serif'; ctx.fillText('игрок',x,y+21); }
+  });
+
+  if(joy.on){ ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(joy.bx,joy.by,46,0,7); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.25)';
+    ctx.beginPath(); ctx.arc(joy.bx+joy.dx*46,joy.by+joy.dy*46,16,0,7); ctx.fill(); }
+
+  if(cur.b){ ctx.fillStyle='rgba(8,4,14,.8)'; ctx.fillRect(60,12,W-120,14);
+    ctx.fillStyle='#ff3d6e'; ctx.fillRect(62,14,(W-124)*Math.max(0,cur.b.hp/cur.b.mx),10);
+    ctx.fillStyle='#fff'; ctx.font='600 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('МОРГАРТ · фаза '+cur.b.ph,W/2,23); }
+}
+function foe(f,x,y){
+  ctx.fillStyle=f.c;
+  if(f.t==='bug'){ ctx.beginPath(); ctx.moveTo(x,y-f.r); ctx.lineTo(x+f.r,y+f.r*0.8); ctx.lineTo(x-f.r,y+f.r*0.8); ctx.closePath(); ctx.fill(); }
+  else if(f.t==='drone'){ ctx.beginPath();
+    for(var i=0;i<6;i++){var an=i/6*Math.PI*2-Math.PI/2,px=x+Math.cos(an)*f.r,py=y+Math.sin(an)*f.r; i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+    ctx.closePath(); ctx.fill(); ctx.fillStyle='#0a1122'; ctx.beginPath(); ctx.arc(x,y,3.5,0,7); ctx.fill(); }
+  else { ctx.fillRect(x-f.r,y-f.r,f.r*2,f.r*2);
+    if(f.t==='guard'){ ctx.strokeStyle='#ffd166'; ctx.lineWidth=2; ctx.strokeRect(x-f.r-4,y-f.r-4,f.r*2+8,f.r*2+8); }
+    ctx.fillStyle='#0a1122'; ctx.fillRect(x-7,y-5,4,4); ctx.fillRect(x+3,y-5,4,4); }
+  if(f.mx>60){ ctx.fillStyle='#22345a'; ctx.fillRect(x-f.r,y-f.r-9,f.r*2,3);
+    ctx.fillStyle=f.c; ctx.fillRect(x-f.r,y-f.r-9,f.r*2*Math.max(0,f.hp/f.mx),3); }
+}
+function drawBoss(b){
+  ctx.fillStyle=b.ph===3?'#ff2e5e':(b.ph===2?'#c02a8f':'#7a2ec0');
+  ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
+  ctx.fillStyle='#2a0a2e';
+  ctx.beginPath(); ctx.moveTo(b.x-b.r*.8,b.y-b.r*.5); ctx.lineTo(b.x-b.r*1.25,b.y-b.r*1.35); ctx.lineTo(b.x-b.r*.3,b.y-b.r*.85); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(b.x+b.r*.8,b.y-b.r*.5); ctx.lineTo(b.x+b.r*1.25,b.y-b.r*1.35); ctx.lineTo(b.x+b.r*.3,b.y-b.r*.85); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ffe066';
+  ctx.beginPath(); ctx.ellipse(b.x-11,b.y-4,5,7,0,0,7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(b.x+11,b.y-4,5,7,0,0,7); ctx.fill();
+}
+render();
+</script>
+</body></html>

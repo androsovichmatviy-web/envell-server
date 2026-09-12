@@ -1,0 +1,15 @@
+{
+  "name": "envell-online",
+  "version": "1.0.0",
+  "description": "Фанатская 2D-игра по мотивам Героев Энвелла: онлайн на 5 игроков",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
