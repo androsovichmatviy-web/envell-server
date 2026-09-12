@@ -64,11 +64,11 @@ function levelOf(xp) {
 }
 
 const FOE = {
-  bug  : {w:9,  h:7,  hp:22,  spd:0.72, dmg:6,  fly:false, shoot:false, xp:4,   cells:1},
-  flyer: {w:11, h:8,  hp:28,  spd:0.55, dmg:7,  fly:true,  shoot:true,  xp:6,   cells:1},
-  golem: {w:12, h:12, hp:75,  spd:0.34, dmg:15, fly:false, shoot:false, xp:14,  cells:3},
-  guard: {w:19, h:19, hp:340, spd:0.48, dmg:19, fly:false, shoot:true,  xp:90,  cells:20},
-  salam: {w:14, h:9,  hp:900, spd:0.95, dmg:22, fly:true,  shoot:true,  xp:260, cells:40}
+  bug  : {w:14, h:11, hp:22,  spd:0.72, dmg:6,  fly:false, shoot:false, xp:4,   cells:1},
+  flyer: {w:16, h:12, hp:28,  spd:0.55, dmg:7,  fly:true,  shoot:true,  xp:6,   cells:1},
+  golem: {w:18, h:18, hp:75,  spd:0.34, dmg:15, fly:false, shoot:false, xp:14,  cells:3},
+  guard: {w:22, h:21, hp:340, spd:0.48, dmg:19, fly:false, shoot:true,  xp:90,  cells:20},
+  salam: {w:22, h:12, hp:900, spd:0.95, dmg:22, fly:true,  shoot:true,  xp:260, cells:40}
 };
 
 const MAPS = [
@@ -87,7 +87,7 @@ let uid = 1;
 function makeRoom(code) {
   const r = { code, players:new Map(), phase:'lobby', level:1, diff:1, timer:0, tick:0,
               heroes:[], foes:[], shots:[], fx:[], boss:null, plats:MAPS[0], spawnLeft:0, seq:1,
-              cells:0, up:{hp:0, dmg:0}, xp:{}, quests:[], qseq:1, hitless:true, best:1 };
+              cells:0, up:{hp:0, dmg:0}, xp:{}, quests:[], qseq:1, hitless:true, best:1, seen:{} };
   ORDER.forEach(k => r.xp[k] = 0);
   rooms.set(code, r);
   return r;
@@ -145,7 +145,15 @@ function buildLevel(room) {
   room.heroes.forEach((h, i) => { h.x = 90 + i * 34; h.y = 120; });
 
   room.foes = []; room.shots = []; room.fx = []; room.boss = null; room.tick = 0; room.hitless = true;
+  room.run = { dmg:0, deaths:0, cells0:room.cells, xp0:Object.assign({}, room.xp) };
+  room.report = null;
   if (room.level > room.best) room.best = room.level;
+  const ch = STORY.find(c => c.lv === room.level);
+  if (ch && !room.seen[ch.lv]) {
+    room.seen[ch.lv] = 1;
+    broadcast(room, { t:'story', ch });
+    room.heroes.forEach(h => h.inv = 300);
+  }
 
   if (room.level >= 100) {
     room.plats = BOSS_MAP;
@@ -169,18 +177,54 @@ function buildLevel(room) {
 }
 
 /* ===================== квесты ===================== */
+/* ---------- сюжет: десять глав ---------- */
+const STORY = [
+ {lv:1,   t:'Глава 1. Вход',
+  s:'Экран погас, а когда зрение вернулось — под ногами была трава, которой не бывает: слишком ровного зелёного цвета. Над головой висели куски скал. Ник поднял руку и увидел вместо неё чужую, в перчатке. «Мы в игре», — сказал Арт. Никто не засмеялся.',
+  o:'Пройти первый уровень и понять, что отсюда не выйти'},
+ {lv:10,  t:'Глава 2. Страж ворот',
+  s:'На десятом уровне дорогу перегородила фигура в латах с золотой короной. Она не говорила, просто стояла. Когда отряд попробовал обойти — шагнула следом. «Это не монстр, — сказал Фил. — Это замок. Уровни кто-то запер».',
+  o:'Одолеть Стража уровня'},
+ {lv:20,  t:'Глава 3. Голос',
+  s:'Небо мигнуло, и в нём проступило лицо: бледное, вытянутое, с глазами цвета бирюзы. «Пятеро, — сказал голос почти ласково. — Как удачно. Мне нужен был ключ, а ключ — это игроки». Лицо растаяло. Кира первой сказала вслух то, о чём подумали все: он хочет наружу.',
+  o:'Дойти до двадцатого уровня'},
+ {lv:25,  t:'Глава 4. Невидимый след',
+  s:'Двадцать пятый встретил тишиной. Ни одного врага — и при этом кто-то дышал рядом. Вик выставил щит наугад, и по нему скользнуло что-то длинное и зелёное, на миг проявившись. Саламандра. Она не охраняла уровень — она за ними следила.',
+  o:'Победить Саламандру'},
+ {lv:40,  t:'Глава 5. Пепелище',
+  s:'Земли выгорели. Ларс узнал место: неделю назад тут была Роща. «Игра переписывает сама себя, — понял Фил. — Каждый наш шаг он использует как материал». Чем дальше они шли, тем больше мира Моргарт перекраивал под себя.',
+  o:'Пройти сорок уровней'},
+ {lv:50,  t:'Глава 6. Первый обломок',
+  s:'Вторая Саламандра рассыпалась на куски кода. Один осколок не погас — он лёг Арту в ладонь и был тёплым. Обрывок ключа. Того самого, которым запирают выход. Значит, ключ можно собрать. Значит, можно запереть Моргарта здесь навсегда.',
+  o:'Добыть первый обломок ключа'},
+ {lv:60,  t:'Глава 7. Наледь',
+  s:'На шестидесятом всё стояло во льду, включая чью-то фигуру у самого края. Игрок. Застрявший до них, вмёрзший в собственный уровень. Он успел сказать одно слово, прежде чем рассыпался: «Не... открывайте». Отряд впервые серьёзно поспорил, идти ли дальше.',
+  o:'Пройти шестьдесят уровней'},
+ {lv:75,  t:'Глава 8. Ключ целиком',
+  s:'Третий обломок сам прыгнул к двум первым, и ключ сошёлся. В ту же секунду небо треснуло: Моргарт понял, что ключ у них. «Несите его мне, — сказал он. — Или я приду сам». Он пришёл бы в любом случае.',
+  o:'Собрать ключ полностью'},
+ {lv:90,  t:'Глава 9. Ворота Цитадели',
+  s:'Цитадель стояла на краю мира, и за ней ничего не было — просто обрыв в белое. Там, в белом, был их класс, их портфели, их вторник. Моргарт держал ворота приоткрытыми и ждал, когда пятеро подойдут достаточно близко.',
+  o:'Дойти до девяностого уровня'},
+ {lv:100, t:'Глава 10. Моргарт',
+  s:'Он оказался выше, чем в небе. Плащ, воротник, бирюзовые глаза и очень спокойное лицо человека, который всё рассчитал. «Вы принесли ключ, — сказал Моргарт. — Спасибо». Арт сжал рукоять. Выход был один — и не наружу, а сквозь него.',
+  o:'Победить Моргарта и закрыть выход'}
+];
+
 const QT = [
-  r => ({ k:'kill',  t:10 + r.level * 2, txt:'Уничтожить ' + (10 + r.level * 2) + ' врагов', c:15, x:60 }),
-  r => ({ k:'clear', t:3,                txt:'Пройти 3 уровня подряд',                      c:25, x:120 }),
-  r => ({ k:'nohit', t:1,                txt:'Пройти уровень, не получив урона',            c:40, x:200 }),
-  r => ({ k:'golem', t:5,                txt:'Разбить 5 големов',                           c:20, x:90 }),
-  r => ({ k:'boss',  t:1,                txt:'Победить Стража или Саламандру',              c:60, x:260 })
+  r => ({ k:'kill',  n:'Зачистка',        t:10 + r.level * 2, txt:'Уничтожить ' + (10 + r.level*2) + ' врагов', c:15, x:60 }),
+  r => ({ k:'clear', n:'Марш-бросок',     t:3,  txt:'Пройти 3 уровня подряд',              c:25, x:120 }),
+  r => ({ k:'nohit', n:'Ни царапины',     t:1,  txt:'Пройти уровень, не получив урона',    c:40, x:200 }),
+  r => ({ k:'golem', n:'Камнедробитель',  t:5,  txt:'Разбить 5 големов',                   c:20, x:90  }),
+  r => ({ k:'boss',  n:'Охота',           t:1,  txt:'Победить Стража или Саламандру',      c:60, x:260 }),
+  r => ({ k:'fast',  n:'Налегке',         t:1,  txt:'Пройти уровень меньше чем за 40 секунд', c:35, x:150 }),
+  r => ({ k:'cells', n:'Собиратель',      t:60, txt:'Собрать 60 клеток',                   c:30, x:110 })
 ];
 function addQuest(room) {
   if (room.quests.filter(q => !q.done).length >= 4) return;
   const q = QT[Math.floor(Math.random() * QT.length)](room);
-  room.quests.push({ id:room.qseq++, k:q.k, txt:q.txt, t:q.t, p:0, c:q.c, x:q.x, done:false, lvl:room.level });
-  say(room, 'Карта', 'Новое задание: ' + q.txt);
+  room.quests.push({ id:room.qseq++, k:q.k, n:q.n, txt:q.txt, t:q.t, p:0, c:q.c, x:q.x, done:false, lvl:room.level });
+  say(room, 'Журнал', 'Новое задание: ' + q.n + ' — ' + q.txt);
 }
 function questTick(room, kind, n) {
   for (const q of room.quests) {
@@ -240,8 +284,11 @@ function hurt(room, h, d) {
   if (h.inv > 0) return;
   if (h.shield > 0) d *= 0.25;
   h.hp -= d; room.hitless = false;
+  if (room.run) room.run.dmg += d;
   num(room, cx(h), h.y - 4, d, '#ff5d73');
-  if (h.hp <= 0) { h.hp = 0; h.down = true; h.rt = 260; say(room, h.c.name, 'Меня выбили!'); }
+  if (h.hp <= 0) { h.hp = 0; h.down = true; h.rt = 260;
+    if (room.run) room.run.deaths++;
+    say(room, h.c.name, 'Меня выбили!'); }
 }
 
 /* ===================== способности ===================== */
@@ -488,6 +535,23 @@ function stepShots(room) {
   }
 }
 
+function makeReport(room) {
+  const run = room.run || { dmg:0, deaths:0, cells0:room.cells, xp0:room.xp };
+  const teamHp = room.heroes.reduce((s, h) => s + h.max, 0) || 1;
+  const secs = room.tick / 60;
+  let score = 100;
+  score -= Math.min(55, run.dmg / teamHp * 100 * 0.9);
+  score -= run.deaths * 14;
+  score -= Math.max(0, (secs - 45) * 0.45);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const grade = score >= 95 ? 'S' : score >= 85 ? 'A' : score >= 70 ? 'B'
+              : score >= 55 ? 'C' : score >= 38 ? 'D' : 'E';
+  const xp = {};
+  ORDER.forEach(k => xp[k] = { lv:levelOf(room.xp[k]), got:Math.round(room.xp[k] - (run.xp0[k] || 0)) });
+  room.report = { lvl:room.level, grade, score, secs:Math.round(secs),
+    dmg:Math.round(run.dmg), deaths:run.deaths, cells:room.cells - run.cells0, xp };
+}
+
 function tickRoom(room) {
   if (room.players.size === 0) return;
   if (room.phase === 'clear' || room.phase === 'dead') {
@@ -509,6 +573,7 @@ function tickRoom(room) {
     const f = room.foes[i], b = FOE[f.type];
     room.cells += b.cells; giveXp(room, b.xp);
     questTick(room, 'kill', 1);
+    questTick(room, 'cells', b.cells);
     if (f.type === 'golem') questTick(room, 'golem', 1);
     if (f.type === 'guard' || f.type === 'salam') questTick(room, 'boss', 1);
     boom(room, cx(f), cy(f), 20, '#ffd166');
@@ -522,11 +587,13 @@ function tickRoom(room) {
     return;
   }
   if (!room.boss && room.foes.length === 0 && room.spawnLeft === 0) {
-    room.phase = 'clear'; room.timer = 190;
+    room.phase = 'clear'; room.timer = 300;
     giveXp(room, 40 + room.level * 6);
     questTick(room, 'clear', 1);
     if (room.hitless) questTick(room, 'nohit', 1);
     addQuest(room);
+    makeReport(room);
+    if (room.report.secs < 40) questTick(room, 'fast', 1);
     say(room, 'Сервер', 'Уровень ' + room.level + ' пройден.');
     broadcast(room, lobbyState(room));
     return;
@@ -553,7 +620,10 @@ function lobbyState(room) {
   ORDER.forEach(k => { const l = levelOf(room.xp[k]); lv[k] = l;
     let acc = 0; for (let i = 1; i < l; i++) acc += xpNeed(i);
     xp[k] = room.xp[k] - acc; nx[k] = xpNeed(l); });
+  let ci = STORY.findIndex(c => room.best <= c.lv);
+  const story = STORY.map((c, i) => ({ i, lv:c.lv, t:c.t, s:c.s, o:c.o, done:room.best > c.lv }));
   return { t:'lobby', code:room.code, phase:room.phase, level:room.level, best:room.best,
+    story, chapter:ci < 0 ? STORY.length - 1 : ci,
     cells:room.cells, up:room.up, lv, xp, nx, quests:room.quests,
     slots: ORDER.map(k => {
       const h = room.heroes.find(x => x.key === k);
@@ -575,6 +645,7 @@ function snapshot(room) {
         v:f.inv?1:0, z:f.frz>0?1:0, hp:Math.round(f.hp), mx:Math.round(f.max) })),
     p: room.shots.map(q => ({ i:q.id, x:Math.round(q.x), y:Math.round(q.y), r:q.r, c:q.c })),
     x: room.fx };
+  if (room.report) s.rep = room.report;
   if (room.boss) s.b = { x:Math.round(room.boss.x), y:Math.round(room.boss.y), f:room.boss.face,
                          hp:Math.round(room.boss.hp), mx:Math.round(room.boss.max), ph:room.boss.phase };
   room.fx = [];
