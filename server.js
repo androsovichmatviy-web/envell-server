@@ -12,12 +12,16 @@ const { WebSocketServer } = require('ws');
 
 const PORT  = process.env.PORT || 3000;
 const INDEX = path.join(__dirname, 'index.html');
+const ISKRA = path.join(__dirname, 'iskra.html');
 
 const server = http.createServer((req, res) => {
   const p = req.url.split('?')[0];
-  if (p !== '/' && p !== '/index.html') { res.writeHead(404); return res.end('not found'); }
-  fs.readFile(INDEX, (err, data) => {
-    if (err) { res.writeHead(500); return res.end('index.html рядом с server.js не найден'); }
+  // /iskra — отдельная одиночная игра-головоломка «Искра»
+  const file = (p === '/iskra' || p === '/iskra.html') ? ISKRA
+             : (p === '/' || p === '/index.html') ? INDEX : null;
+  if (!file) { res.writeHead(404); return res.end('not found'); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(500); return res.end(path.basename(file) + ' рядом с server.js не найден'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(data);
   });
